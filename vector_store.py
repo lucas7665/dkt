@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import os
 
-# 抑制警告1
+# 抑制警告12
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", message="Using.*TRANSFORMERS_CACHE.*")
 
