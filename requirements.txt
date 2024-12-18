@@ -1,0 +1,6 @@
+python-docx
+transformers
+faiss-cpu
+haystack-ai
+torch
+numpy
