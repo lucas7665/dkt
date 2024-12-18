@@ -8,6 +8,7 @@ from haystack import Document
 import faiss
 import os
 import time
+import re
 
 # 抑制所有警告
 warnings.filterwarnings("ignore")
@@ -180,9 +181,7 @@ class QASystem:
     def interactive_mode(self):
         def clear_screen():
             os.system('cls' if os.name == 'nt' else 'clear')
-            print_welcome_message()
-        
-        def print_welcome_message():
+            # 重新显示欢迎信息
             print("\n欢迎使用医疗保险政策问答系统！")
             print("=" * 50)
             print("命令说明：")
@@ -191,7 +190,7 @@ class QASystem:
             print("- 输入 'cache' 查看已缓存的问题")
             print("=" * 50)
         
-        print_welcome_message()
+        clear_screen()
         
         while True:
             try:
@@ -242,6 +241,47 @@ class QASystem:
             except Exception as e:
                 logger.error(f"处理问题时出错: {str(e)}")
                 print("\n抱歉，处理您的问题时出现错误，请重试。")
+
+    def extract_answer(self, question, relevant_docs):
+        """改进的答案提取逻辑"""
+        # 识别问题类型
+        question_type = self._classify_question(question)
+        
+        if question_type == 'responsibility':  # 职责相关问题
+            answer = self._extract_responsibility_answer(question, relevant_docs)
+        else:
+            answer = self._default_extract_answer(question, relevant_docs)
+            
+        return answer
+
+    def _classify_question(self, question):
+        """问题分类"""
+        responsibility_keywords = ['职责', '责任', '职能', '工作', '负责']
+        if any(keyword in question for keyword in responsibility_keywords):
+            return 'responsibility'
+        return 'general'
+
+    def _extract_responsibility_answer(self, question, docs):
+        """提取职责相关答案"""
+        responsibilities = []
+        
+        for doc in docs:
+            # 查找包含职责描述的条款
+            matches = re.finditer(r'第[一二三四五六七八九十]+条.*?[。；]', doc.content)
+            for match in matches:
+                content = match.group()
+                # 检查是否包含职责相关内容
+                if any(word in content for word in ['负责', '职责', '应当', '职能']):
+                    responsibilities.append(content)
+        
+        if responsibilities:
+            return {
+                'answer': '\n'.join(responsibilities),
+                'context': docs[0].content,
+                'confidence': 0.9
+            }
+        
+        return None
 
 if __name__ == '__main__':
     # 设置环境变量
